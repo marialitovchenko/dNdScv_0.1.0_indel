@@ -511,7 +511,7 @@ dndscv = function(mutations, gene_list = NULL, refdb = "hg19", sm = "192r_3w", k
         sel_cv = sel_cv[order(sel_cv$pallsubs_cv, sel_cv$pmis_cv, sel_cv$ptrunc_cv, -sel_cv$wmis_cv),] # Sorting genes in the output file
 
         ## Indel recurrence: based on a negative binomial regression (ideally fitted excluding major known driver genes)
-
+        geneindels <- NULL # MODIFICATIONS FROM MARIA LITOVCHENKO
         if (nrow(indels) >= min_indels) {
 
             geneindels = as.data.frame(array(0,dim=c(length(RefCDS),8)))

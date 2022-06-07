@@ -266,15 +266,17 @@ geneci = function(dndsout, gene_list = NULL, level = 0.95) {
     ci95ind = array(NA, dim = c(length(gene_list), 3))
     colnames(ci95ind) = c("ind_mle", "ind_low", "ind_high")
     
-    for (j in 1:length(gene_list)) {
-      geneind = which(dndsout$geneindels$gene_name==gene_list[j])
-      ci95ind[j,] = ci95nbr(dndsout$geneindels$n_indused[geneind], 
-                            dndsout$geneindels$exp_indcv[geneind],
-                            dndsout$geneindels$theta[geneind])
-      # Progress
-      if (round(j/1000) == (j/1000)) {
-        print(paste0(round(100 * j/length(gene_list)), '...'))
-      } 
+    if (!is.null(dndsout$geneindels)) {
+      for (j in 1:length(gene_list)) {
+        geneind = which(dndsout$geneindels$gene_name==gene_list[j])
+        ci95ind[j,] = ci95nbr(dndsout$geneindels$n_indused[geneind], 
+                              dndsout$geneindels$exp_indcv[geneind],
+                              dndsout$geneindels$theta[geneind])
+        # Progress
+        if (round(j/1000) == (j/1000)) {
+          print(paste0(round(100 * j/length(gene_list)), '...'))
+        } 
+      }
     }
     ci95indDf = cbind(gene = gene_list, as.data.frame(ci95ind))
     
