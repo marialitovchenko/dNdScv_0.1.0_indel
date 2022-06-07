@@ -268,7 +268,7 @@ geneci = function(dndsout, gene_list = NULL, level = 0.95) {
     
     for (j in 1:length(gene_list)) {
       geneind = which(dndsout$geneindels$gene_name==gene_list[j])
-      ci95ind[j,] = ci95nbr(dndsout$geneindels$n_ind[geneind], 
+      ci95ind[j,] = ci95nbr(dndsout$geneindels$n_indused[geneind], 
                             dndsout$geneindels$exp_indcv[geneind],
                             dndsout$geneindels$theta[geneind])
       # Progress
