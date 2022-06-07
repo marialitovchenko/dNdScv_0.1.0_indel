@@ -571,10 +571,8 @@ dndscv = function(mutations, gene_list = NULL, refdb = "hg19", sm = "192r_3w", k
             geneindels$exp_indcv = exp(predict(model,nbrdf_all))
             geneindels$wind = geneindels$n_indused / geneindels$exp_indcv
             
-            # MODIFICATIONS FROM MARIA LITOVCHENKO: add to genemuts expected 
-            # number of indels
-            genemuts$n_ind <- geneindels$n_indused
-            genemuts$exp_ind_cv <- geneindels$exp_indcv
+            # # MODIFICATIONS FROM MARIA LITOVCHENKO: add theta to geneindels
+            geneindels$theta <- theta_indels
 
             # Statistical testing for indel recurrence per gene
 
@@ -598,10 +596,11 @@ dndscv = function(mutations, gene_list = NULL, refdb = "hg19", sm = "192r_3w", k
 
     annot = annot[,setdiff(colnames(annot),c("start","end","geneind"))]
 
+    # MODIFICATIONS FROM MARIA LITOVCHENKO: add to geneindels to output 
     if (outmats) {
-        dndscvout = list(globaldnds = globaldnds, sel_cv = sel_cv, sel_loc = sel_loc, annotmuts = annot, genemuts = genemuts, mle_submodel = mle_submodel, exclsamples = exclsamples, exclmuts = exclmuts, nbreg = nbreg, nbregind = nbregind, poissmodel = poissmodel, wrongmuts = wrong_refbase, N = Nall, L = Lall)
+        dndscvout = list(globaldnds = globaldnds, sel_cv = sel_cv, sel_loc = sel_loc, annotmuts = annot, genemuts = genemuts, geneindels = geneindels, mle_submodel = mle_submodel, exclsamples = exclsamples, exclmuts = exclmuts, nbreg = nbreg, nbregind = nbregind, poissmodel = poissmodel, wrongmuts = wrong_refbase, N = Nall, L = Lall)
     } else {
-        dndscvout = list(globaldnds = globaldnds, sel_cv = sel_cv, sel_loc = sel_loc, annotmuts = annot, genemuts = genemuts, mle_submodel = mle_submodel, exclsamples = exclsamples, exclmuts = exclmuts, nbreg = nbreg, nbregind = nbregind, poissmodel = poissmodel, wrongmuts = wrong_refbase)
+        dndscvout = list(globaldnds = globaldnds, sel_cv = sel_cv, sel_loc = sel_loc, annotmuts = annot, genemuts = genemuts, geneindels = geneindels, mle_submodel = mle_submodel, exclsamples = exclsamples, exclmuts = exclmuts, nbreg = nbreg, nbregind = nbregind, poissmodel = poissmodel, wrongmuts = wrong_refbase)
     }
 
 } # EOF

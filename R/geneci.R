@@ -1,3 +1,63 @@
+#' Subfunction to calculate CI95% for the obs/exp ratios of subs and indels in NBR
+#' 
+#' Function to calculate confidence intervals for dN/dS values per gene FOR INDELS 
+#' under the dNdScv model.
+#'
+#' @author NBR 
+#' @param n_obs observed number of indels
+#' @param n_exp expected number of indels
+#' @param nb_size theta
+ci95nbr = function(n_obs, n_exp, nb_size) {
+  wmax = 100000 
+  iter = 6
+  grid_size = 10
+  cutoff = qchisq(p = 0.95, df = 1) # Default params
+  wmle = n_obs/n_exp # MLE for w
+  ml = dnbinom(x=n_obs, mu=n_exp*wmle, size=nb_size, log=T) # LogLik under MLE
+  
+  if (!is.na(n_exp)) {
+    if (wmle<wmax) {
+      # 1. Iterative search of lower bound CI95%
+      if (wmle>0) {
+        search_range = c(1e-9, wmle)
+        for (it in 1:iter) {
+          wvec = seq(search_range[1], search_range[2], length.out=grid_size)
+          ll = dnbinom(x=n_obs, mu=n_exp*wvec, size=nb_size, log=T)
+          lr = 2*(ml-ll) > cutoff
+          ind = max(which(wvec<=wmle & lr))
+          search_range = c(wvec[ind], wvec[ind+1])
+        }
+        w_low = wvec[ind]
+      } else {
+        w_low = 0
+      }
+      
+      # 2. Iterative search of higher bound CI95%
+      search_range = c(wmle, wmax)
+      llhighbound = dnbinom(x=n_obs, mu=n_exp*wmax, size=nb_size, log=T)
+      outofboundaries = !(2*(ml-llhighbound) > cutoff)
+      if (!outofboundaries) {
+        for (it in 1:iter) {
+          wvec = seq(search_range[1], search_range[2],length.out=grid_size)
+          ll = dnbinom(x=n_obs, mu=n_exp*wvec, size=nb_size, log=T)
+          lr = 2*(ml-ll) > cutoff
+          ind = min(which(wvec>=wmle & lr))
+          search_range = c(wvec[ind-1], wvec[ind])
+        }
+        w_high = wvec[ind]
+      } else {
+        w_high = wmax
+      }
+    } else {
+      wmle = w_low = w_high = wmax # Out of bounds
+    }
+  } else {
+    wmle = w_low = w_high = NA # invalid
+  }
+  
+  return(c(wmle,w_low,w_high))
+}
+
 #' geneci
 #'
 #' Function to calculate confidence intervals for dN/dS values per gene under the dNdScv model using profile likelihood. To generate a valid dndsout input object for this function, use outmats=T when running dndscv.
@@ -169,7 +229,7 @@ geneci = function(dndsout, gene_list = NULL, level = 0.95) {
     
     ## Calculating CI95% across all genes
     
-    message("Calculating CI95 across all genes...")
+    message("Calculating CI95 across all genes, SNPs ...")
     
     ci95 = array(NA, dim=c(length(gene_list),9))
     colnames(ci95) = c("mis_mle","non_mle","spl_mle","mis_low","non_low","spl_low","mis_high","non_high","spl_high")
@@ -188,7 +248,9 @@ geneci = function(dndsout, gene_list = NULL, level = 0.95) {
             x = list(n=N[,,geneind], l=L[,,geneind])
         }
         ci95[j,] = c(ci95cv_intt(x,y,mutrates,theta,grid_size=10,iter=10,wnoneqspl=wnoneqspl))
-        if (round(j/1000)==(j/1000)) { print(j/length(gene_list), digits=2) } # Progress
+        if (round(j/1000) == (j/1000)) { # Progress
+          print(paste0(round(100 * j/length(gene_list)), '%...')) 
+        }
     }
     
     ci95df = cbind(gene=gene_list, as.data.frame(ci95))
@@ -198,7 +260,24 @@ geneci = function(dndsout, gene_list = NULL, level = 0.95) {
         ci95df = ci95df[,-c(4,7,10)]
         colnames(ci95df) = c("gene","mis_mle","tru_mle","mis_low","tru_low","mis_high","tru_high")
     }
-
-    return(ci95df)
     
+    message("Calculating CI95 across all genes, indels ...")
+    
+    ci95ind = array(NA, dim = c(length(gene_list), 3))
+    colnames(ci95ind) = c("ind_mle", "ind_low", "ind_high")
+    
+    for (j in 1:length(gene_list)) {
+      geneind = which(dndsout$geneindels$gene_name==gene_list[j])
+      ci95ind[j,] = ci95nbr(dndsout$geneindels$n_ind[geneind], 
+                            dndsout$geneindels$exp_indcv[geneind],
+                            dndsout$geneindels$theta[geneind])
+      # Progress
+      if (round(j/1000) == (j/1000)) {
+        print(paste0(round(100 * j/length(gene_list)), '...'))
+      } 
+    }
+    ci95indDf = cbind(gene = gene_list, as.data.frame(ci95ind))
+    
+    ci95df = merge(ci95df, ci95indDf, by = "gene")
+    return(ci95df)
 } # EOF
